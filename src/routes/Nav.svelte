@@ -24,9 +24,10 @@
 	</div>
 	<div class="flex items-center gap-2">
 		<a
-			href="https://github.com/rl404/yuubari"
-			class="hover:text-primary transition-colors"
 			title="source code"
+			href="https://github.com/rl404/yuubari"
+			target="_blank"
+			class="hover:text-primary transition-colors"
 		>
 			<GithubIcon class="size-7" />
 		</a>
