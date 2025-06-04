@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+@theme inline {
+	--font-gg-sans: 'gg sans';
+	--color-border: var(--color-neutral-700);
+	--color-background-primary: #313338;
+	--color-background-secondary: #2b2d31;
+	--color-background-active: #5865f2;
+}
+
+@layer base {
+	@font-face {
+		font-family: 'gg sans';
+		src: url('/fonts/gg sans Regular.ttf');
+	}
+
+	body {
+		@apply bg-background-secondary font-gg-sans text-neutral-400;
+	}
+}
+
+@utility text-primary {
+	color: white;
+}
+
+@utility h1 {
+	@apply text-primary text-3xl font-bold sm:text-4xl;
+}
+
+@utility h2 {
+	@apply text-primary text-2xl font-bold sm:text-3xl;
+}
+
+@utility h3 {
+	@apply text-primary text-xl font-bold sm:text-2xl;
+}
+
+@utility h4 {
+	@apply text-primary text-lg font-bold sm:text-xl;
+}
+
+@utility h5 {
+	@apply text-primary font-bold sm:text-lg;
+}
+
+@utility h6 {
+	@apply text-primary font-bold;
+}
