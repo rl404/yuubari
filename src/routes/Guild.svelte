@@ -151,7 +151,7 @@
 				>.
 			</div>
 		{:else if loading}
-			{#each Array(48), i}
+			{#each Array(24 * 4), i}
 				<div
 					class={twMerge(
 						'bg-background-secondary aspect-square animate-pulse rounded-lg',
