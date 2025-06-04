@@ -21,6 +21,7 @@
 	<img
 		src={`${DISCORD_CDN_HOST}/stickers/${sticker.id}.png`}
 		alt={sticker.name}
+		title={sticker.name}
 		class="aspect-square h-full w-full cursor-pointer object-contain transition-opacity hover:opacity-70"
 		onclick={onClick}
 	/>
