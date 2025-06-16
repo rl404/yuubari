@@ -44,6 +44,9 @@
 				<Guild {guild} />
 			</RenderIfVisible>
 		{/each}
+		{#if filteredGuilds.length === 0}
+			<div class="text-center">No server found...</div>
+		{/if}
 	</main>
 {/if}
 
