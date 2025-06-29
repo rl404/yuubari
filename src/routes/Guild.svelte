@@ -201,7 +201,7 @@
 					</RenderIfVisible>
 				{/each}
 				{#if emojis.length > 24 * 4}
-					<div class="col-span-full text-center">
+					<div class="sticky bottom-2 col-span-full text-center">
 						<button
 							class="bg-background-active text-primary cursor-pointer rounded-lg px-2 py-0.5 transition-opacity hover:opacity-70"
 							onclick={toggleShowMoreEmoji}>show {showMoreEmoji ? 'less' : 'more'}</button
@@ -233,7 +233,7 @@
 					</RenderIfVisible>
 				{/each}
 				{#if stickers.length > 24}
-					<div class="col-span-full text-center">
+					<div class="sticky bottom-2 col-span-full text-center">
 						<button
 							class="bg-background-active text-primary cursor-pointer rounded-lg px-2 py-0.5 transition-opacity hover:opacity-70"
 							onclick={toggleShowMoreSticker}>show {showMoreSticker ? 'less' : 'more'}</button
