@@ -27,10 +27,10 @@
 			{ threshold: 0.1 }
 		);
 
-		observer && observer.observe(element);
+		if (observer) observer.observe(element);
 
 		return () => {
-			observer && observer.disconnect();
+			if (observer) observer.disconnect();
 			clearTimeout(timer);
 		};
 	});

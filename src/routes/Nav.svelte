@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { DISCORD_CDN_HOST } from '$lib/const';
 	import GithubIcon from '$lib/icons/GithubIcon.svelte';
 	import LogoutIcon from '$lib/icons/LogoutIcon.svelte';
@@ -62,7 +63,7 @@
 						<div class="bg-border h-0.5 w-full"></div>
 						<a
 							class="hover:text-primary flex cursor-pointer items-center gap-2 transition-colors"
-							href="/auth/logout"
+							href={resolve('/auth/logout')}
 						>
 							<LogoutIcon class="size-5" />Logout
 						</a>

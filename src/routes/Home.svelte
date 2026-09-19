@@ -1,3 +1,7 @@
+<script>
+	import { resolve } from '$app/paths';
+</script>
+
 <div
 	class="fixed top-0 left-0 flex h-screen w-screen flex-col items-center justify-center gap-2 p-2 text-center"
 >
@@ -8,7 +12,7 @@
 	</div>
 	<a
 		class="bg-background-active text-primary cursor-pointer rounded-lg px-2 py-0.5 transition-opacity hover:opacity-80"
-		href="/auth/login"
+		href={resolve('/auth/login')}
 	>
 		Login with Discord
 	</a>
