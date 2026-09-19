@@ -1,7 +1,7 @@
 # Yuubari
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/rl404/yuubari/master/static/home.png">
+    <img src="https://raw.githubusercontent.com/rl404/yuubari/master/static/images/home.png">
 </p>
 
 _Yuubari_ is a simple website to list your Discord Emojis & Stickers from all your joined Discord servers.
