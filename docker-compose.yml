@@ -1,0 +1,8 @@
+services:
+  yuubari:
+    container_name: yuubari
+    image: rl404/yuubari:latest
+    build: .
+    restart: always
+    env_file: .env
+    network_mode: host
