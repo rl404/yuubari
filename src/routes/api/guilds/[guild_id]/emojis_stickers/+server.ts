@@ -1,4 +1,4 @@
-import { DISCORD_BOT_TOKEN } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { DISCORD_API_HOST } from '$lib/const';
 import type { RequestHandler } from './$types';
 
@@ -25,7 +25,7 @@ export type Sticker = {
 
 export const GET = (async ({ params }) => {
 	const resp = await fetch(`${DISCORD_API_HOST}/guilds/${params.guild_id}/preview`, {
-		headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` }
+		headers: { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}` }
 	});
 
 	if (!resp.ok) {
