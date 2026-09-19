@@ -1,0 +1,6 @@
+.git
+.github
+.svelte-kit
+node_modules
+build
+static/images

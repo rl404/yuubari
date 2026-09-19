@@ -1,4 +1,4 @@
-import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, REDIRECT_URI } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { DISCORD_API_HOST } from '$lib/const';
 import type { RequestHandler } from './$types';
 
@@ -7,11 +7,11 @@ export const GET = (async ({ url, cookies }) => {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 		body: new URLSearchParams({
-			client_id: DISCORD_CLIENT_ID || '',
-			client_secret: DISCORD_CLIENT_SECRET || '',
+			client_id: env.DISCORD_CLIENT_ID || '',
+			client_secret: env.DISCORD_CLIENT_SECRET || '',
 			grant_type: 'authorization_code',
 			code: url.searchParams.get('code') || '',
-			redirect_uri: REDIRECT_URI || ''
+			redirect_uri: env.REDIRECT_URI || ''
 		})
 	});
 

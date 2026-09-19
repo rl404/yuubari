@@ -181,7 +181,7 @@
 			{#if emojis.length === 0}
 				<div class="col-span-full text-center">No custom emojis in this server.</div>
 			{:else}
-				{#each showMoreEmoji ? emojis : emojis.slice(0, 24 * 4) as emoji, i}
+				{#each showMoreEmoji ? emojis : emojis.slice(0, 24 * 4) as emoji, i (emoji.id)}
 					<RenderIfVisible
 						class={twMerge(
 							'aspect-square h-full w-full',
@@ -213,7 +213,7 @@
 			{#if stickers.length === 0}
 				<div class="col-span-full text-center">No custom stickers in this server.</div>
 			{:else}
-				{#each showMoreSticker ? stickers : stickers.slice(0, 24) as sticker, i}
+				{#each showMoreSticker ? stickers : stickers.slice(0, 24) as sticker, i (sticker.id)}
 					<RenderIfVisible
 						class={twMerge(
 							'col-span-2 aspect-square h-full w-full',
