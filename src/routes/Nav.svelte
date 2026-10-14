@@ -1,75 +1,100 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { DISCORD_CDN_HOST } from '$lib/const';
+	import LibraryIcon from '$lib/icons/LibraryIcon.svelte';
 	import GithubIcon from '$lib/icons/GithubIcon.svelte';
 	import LogoutIcon from '$lib/icons/LogoutIcon.svelte';
 	import { clickOutside, getDiscordImage, getDiscordTitle } from '$lib/utils';
 	import type { User } from './+page.server';
-
 	export let isLoggedIn: boolean;
 	export let user: User;
-
-	let showMenu: boolean = false;
-
-	const openMenu = () => (showMenu = true);
-	const closeMenu = () => (showMenu = false);
+	let showMenu = false;
+	let appearance: 'light' | 'dark' | 'system' = 'dark';
+	let colourPreference: MediaQueryList;
+	let menuTrigger: HTMLButtonElement;
+	function closeMenu(restoreFocus = false) {
+		showMenu = false;
+		if (restoreFocus) menuTrigger?.focus();
+	}
+	function toggleMenu(event: MouseEvent) {
+		if (event.currentTarget instanceof HTMLButtonElement) menuTrigger = event.currentTarget;
+		showMenu = !showMenu;
+	}
+	function applyAppearance() {
+		document.documentElement.dataset.theme =
+			appearance === 'system' ? (colourPreference.matches ? 'dark' : 'light') : appearance;
+	}
+	function changeAppearance() {
+		applyAppearance();
+		try {
+			localStorage.setItem('yuubari:appearance', appearance);
+		} catch {
+			/* Keep the current appearance for this visit. */
+		}
+	}
+	onMount(() => {
+		colourPreference = window.matchMedia('(prefers-color-scheme: dark)');
+		try {
+			const saved = localStorage.getItem('yuubari:appearance');
+			if (saved === 'light' || saved === 'dark' || saved === 'system') appearance = saved;
+		} catch {
+			/* Use the default appearance. */
+		}
+		applyAppearance();
+		colourPreference.addEventListener('change', applyAppearance);
+		return () => colourPreference.removeEventListener('change', applyAppearance);
+	});
 </script>
 
-<nav
-	class="border-border bg-background-secondary fixed top-0 z-50 flex w-full items-center justify-between gap-2 border-b p-2"
->
-	<div class="flex items-end gap-2 select-none">
-		<img src="/logo.png" alt="logo" class="size-10 rounded-full" />
-		<h1 class="h1">Yuubari</h1>
-		<span class="hidden text-xs sm:block">— Discord Emojis & Stickers</span>
-	</div>
-	<div class="flex items-center gap-2">
-		<a
-			title="source code"
-			href="https://github.com/rl404/yuubari"
-			target="_blank"
-			class="hover:text-primary transition-colors"
+<svelte:window
+	onkeydown={(event) => {
+		if (event.key === 'Escape' && showMenu) closeMenu(true);
+	}}
+/>
+<nav class="app-nav" aria-label="Main navigation">
+	<a class="nav-brand" href={resolve('/')} aria-label="Yuubari home"
+		><img src="/logo.png" alt="" width="24" height="24" /><span>Yuubari</span></a
+	>
+	<div class="nav-account" use:clickOutside={() => closeMenu()}>
+		<button
+			class="settings-button"
+			aria-label="Settings"
+			aria-expanded={showMenu}
+			aria-controls={showMenu ? 'account-popup' : undefined}
+			onclick={toggleMenu}
+			title="Settings"><LibraryIcon name="settings" size={18} /></button
 		>
-			<GithubIcon class="size-7" />
-		</a>
-		{#if isLoggedIn}
-			<div class="relative">
-				<button
-					class="flex cursor-pointer items-center"
-					onclick={openMenu}
-					use:clickOutside={closeMenu}
+		{#if isLoggedIn}<button
+				class="account-button"
+				aria-label="Account menu"
+				aria-expanded={showMenu}
+				aria-controls={showMenu ? 'account-popup' : undefined}
+				onclick={toggleMenu}
+				>{#if user.avatar}<img
+						src={`${DISCORD_CDN_HOST}/avatars/${user.id}/${getDiscordImage(user.avatar)}`}
+						alt=""
+						width="26"
+						height="26"
+					/>{:else}{getDiscordTitle(user.username)}{/if}</button
+			>{/if}
+		{#if showMenu}<div class="account-popup" id="account-popup">
+				{#if isLoggedIn}<p class="account-name">{user.username}</p>{/if}
+				<label class="appearance-control"
+					><span>Appearance</span><select
+						aria-label="Appearance"
+						bind:value={appearance}
+						onchange={changeAppearance}
+						><option value="dark">Dark</option><option value="light">Light</option><option
+							value="system">System</option
+						></select
+					></label
 				>
-					{#if user.avatar}
-						<img
-							src={`${DISCORD_CDN_HOST}/avatars/${user.id}/${getDiscordImage(user.avatar)}`}
-							alt={getDiscordTitle(user.username)}
-							class="bg-background-active text-primary flex size-10 items-center justify-center rounded-full transition-opacity hover:opacity-80"
-						/>
-					{:else}
-						<div
-							class="bg-background-active text-primary flex size-10 items-center justify-center rounded-full transition-opacity hover:opacity-80"
-						>
-							{getDiscordTitle(user.username)}
-						</div>
-					{/if}
-				</button>
-				{#if showMenu}
-					<div
-						class="bg-background-primary border-border absolute top-full right-0 grid gap-2 rounded-lg border p-2"
-					>
-						<div class="text-nowrap">
-							Logged in as <span class="text-primary font-bold">{user.username}</span>
-						</div>
-						<div class="bg-border h-0.5 w-full"></div>
-						<a
-							class="hover:text-primary flex cursor-pointer items-center gap-2 transition-colors"
-							href={resolve('/auth/logout')}
-						>
-							<LogoutIcon class="size-5" />Logout
-						</a>
-					</div>
-				{/if}
-			</div>
-		{/if}
+				<a href="https://github.com/rl404/yuubari" target="_blank" rel="noopener noreferrer"
+					><GithubIcon class="size-4" />Source code</a
+				>
+				{#if isLoggedIn}<a href={resolve('/auth/logout')}><LogoutIcon class="size-4" />Log out</a
+					>{/if}
+			</div>{/if}
 	</div>
 </nav>

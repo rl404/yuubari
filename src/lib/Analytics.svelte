@@ -25,19 +25,20 @@
 	}
 
 	onMount(async () => {
+		if (!env.PUBLIC_GA_ID) return;
 		// We add the script only once even when the component rendered twice.
 		if (window.document.getElementById(scriptID)) return;
 
 		window.dataLayer = window.dataLayer || [];
-		window.gtag = function () {
-			window.dataLayer.push(arguments);
+		window.gtag = (...args: unknown[]) => {
+			window.dataLayer?.push(args);
 		};
 		window.gtag('js', new Date());
 		window.gtag('config', env.PUBLIC_GA_ID);
 
 		try {
 			await addGoogleAnalyticsScript(env.PUBLIC_GA_ID, domain);
-		} catch (err) {
+		} catch {
 			const s = window.document.getElementById(scriptID);
 			if (s) {
 				s.remove();

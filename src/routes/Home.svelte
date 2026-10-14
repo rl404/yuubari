@@ -2,18 +2,14 @@
 	import { resolve } from '$app/paths';
 </script>
 
-<div
-	class="fixed top-0 left-0 flex h-screen w-screen flex-col items-center justify-center gap-2 p-2 text-center"
->
-	<img src="/logo.png" alt="logo" class="size-20 rounded-full" />
-	<div>
-		<h1 class="h1">Yuubari</h1>
-		<h2>List your Discord Emojis & Stickers from all your joined Discord servers.</h2>
-	</div>
-	<a
-		class="bg-background-active text-primary cursor-pointer rounded-lg px-2 py-0.5 transition-opacity hover:opacity-80"
-		href={resolve('/auth/login')}
-	>
-		Login with Discord
-	</a>
-</div>
+<main class="home-main">
+	<section class="home-login">
+		<img src="/logo.png" alt="" width="48" height="48" />
+		<h1>Yuubari</h1>
+		<p>
+			Browse your Discord emojis and stickers, copy their codes, and save an offline collection.
+		</p>
+		<a class="primary-action" href={resolve('/auth/login')}>Login with Discord</a>
+		<p class="home-note">Available for discoverable servers you’ve joined.</p>
+	</section>
+</main>
