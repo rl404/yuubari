@@ -4,6 +4,25 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link
+			rel="preload"
+			href="%sveltekit.assets%/fonts/gg%20sans%20Regular.ttf"
+			as="font"
+			type="font/ttf"
+			crossorigin
+		/>
+		<script>
+			try {
+				const appearance = localStorage.getItem('yuubari:appearance');
+				document.documentElement.dataset.theme =
+					appearance === 'light' ||
+					(appearance === 'system' && !matchMedia('(prefers-color-scheme: dark)').matches)
+						? 'light'
+						: 'dark';
+			} catch {
+				// The default dark appearance also works without browser storage.
+			}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

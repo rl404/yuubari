@@ -1,6 +1,7 @@
 <script lang="ts">
 	const title = 'Yuubari';
-	const description = 'List your Discord Emojis & Stickers from all your joined Discord servers.';
+	const description =
+		'Browse your Discord emojis and stickers. Search across servers, copy codes, save favourites, and export an offline emoji library.';
 	const image = '/logo.png';
 </script>
 
@@ -14,6 +15,6 @@
 	<meta property="og:site_name" content={title} />
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<meta http-equiv="content-type" content="text/html charset=utf-8" />
-	<meta name="theme-color" content="#3ab8a6" />
+	<meta name="theme-color" content="#1a1a1e" />
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
