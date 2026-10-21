@@ -1,4 +1,5 @@
-import { DISCORD_CDN_HOST } from './const.ts';
+import { DISCORD_CDN_HOST, DISCORD_MEDIA_HOST } from './const.ts';
+import { retryAfterMs, waitForRetry } from './retry-after.ts';
 
 export type CopyMode = 'code' | 'link';
 export type AssetKind = 'emoji' | 'sticker';
@@ -27,6 +28,8 @@ export type GuildState = {
 	status: 'loading' | 'loaded' | 'error';
 	entries: CatalogEntry[];
 	error?: string;
+	statusCode?: number;
+	retryAt?: number;
 };
 
 export function emojiCode(emoji: { id: string; name: string; animated?: boolean }): string {
@@ -91,7 +94,9 @@ export function parseGuildEntries(guild: CatalogGuild, body: unknown): CatalogEn
 			throw new Error('Unexpected sticker data.');
 		}
 		const format = value.format_type;
-		const assetUrl = `${DISCORD_CDN_HOST}/stickers/${value.id}.${format === 3 ? 'json' : format === 4 ? 'gif' : 'png'}`;
+		// Discord serves GIF stickers from its media host, not the standard CDN.
+		const host = format === 4 ? DISCORD_MEDIA_HOST : DISCORD_CDN_HOST;
+		const assetUrl = `${host}/stickers/${value.id}.${format === 3 ? 'json' : format === 4 ? 'gif' : 'png'}`;
 		entries.push({
 			id: value.id,
 			name: value.name,
@@ -143,34 +148,76 @@ export function readFavourites(storage: Pick<Storage, 'getItem'>, key: string): 
 	}
 }
 
+// Application retry budget, not a hard-coded Discord request limit.
+const maxRateLimitRetries = 2;
+const maxAutomaticWaitMs = 10_000;
+
 export async function loadGuilds(
 	guilds: CatalogGuild[],
 	onUpdate: (state: GuildState) => void,
-	options: { signal?: AbortSignal; fetch?: typeof fetch; concurrency?: number } = {}
+	options: {
+		signal?: AbortSignal;
+		fetch?: typeof fetch;
+		concurrency?: number;
+		refresh?: boolean;
+	} = {}
 ): Promise<void> {
 	const request = options.fetch || fetch;
-	let cursor = 0;
 	const eligible = guilds.filter((guild) => guild.features.includes('DISCOVERABLE'));
+	let cursor = 0;
+	// Pause the whole batch conservatively: the proxy may have hit a shared/global limit.
+	let pauseUntil = 0;
 	async function worker() {
 		while (cursor < eligible.length && !options.signal?.aborted) {
 			const guild = eligible[cursor++];
 			onUpdate({ guildId: guild.id, status: 'loading', entries: [] });
+			let statusCode: number | undefined;
+			let retryAt: number | undefined;
 			try {
-				const response = await request(`/api/guilds/${guild.id}/emojis_stickers`, {
-					signal: options.signal
-				});
-				if (!response.ok) {
+				for (let attempt = 0; ; attempt++) {
+					while (pauseUntil > Date.now()) {
+						const delay = pauseUntil - Date.now();
+						if (delay > maxAutomaticWaitMs) {
+							statusCode = 429;
+							retryAt = pauseUntil;
+							throw new Error(
+								'Loading paused by Discord’s rate limit. Please retry after the countdown.'
+							);
+						}
+						if (!(await waitForRetry(delay, options.signal))) return;
+					}
+					if (options.signal?.aborted) return;
+					statusCode = undefined;
+					retryAt = undefined;
+					const response = await request(`/api/guilds/${guild.id}/emojis_stickers`, {
+						signal: options.signal,
+						cache: options.refresh ? 'reload' : undefined
+					});
+					if (response.ok) {
+						const entries = parseGuildEntries(guild, await response.json());
+						if (!options.signal?.aborted)
+							onUpdate({ guildId: guild.id, status: 'loaded', entries });
+						break;
+					}
+					statusCode = response.status;
+					if (statusCode === 429) {
+						const delay = retryAfterMs(response.headers.get('Retry-After'));
+						if (delay > 0) {
+							retryAt = Date.now() + delay;
+							pauseUntil = Math.max(pauseUntil, retryAt);
+							if (attempt < maxRateLimitRetries && delay <= maxAutomaticWaitMs) {
+								onUpdate({ guildId: guild.id, status: 'loading', entries: [], retryAt });
+								continue;
+							}
+						}
+					}
 					throw new Error(
-						response.status === 429
-							? 'Discord is busy. Please retry in a moment.'
-							: response.status === 401
+						statusCode === 429
+							? 'Discord rate limit reached. Please retry shortly.'
+							: statusCode === 401
 								? 'The Discord bot token is invalid. Check your server configuration.'
-								: `Could not load this server (${response.status}).`
+								: `Could not load this server (${statusCode}).`
 					);
-				}
-				const entries = parseGuildEntries(guild, await response.json());
-				if (!options.signal?.aborted) {
-					onUpdate({ guildId: guild.id, status: 'loaded', entries });
 				}
 			} catch (error) {
 				if (options.signal?.aborted) return;
@@ -178,6 +225,8 @@ export async function loadGuilds(
 					guildId: guild.id,
 					status: 'error',
 					entries: [],
+					statusCode,
+					retryAt,
 					error: error instanceof Error ? error.message : 'Could not load this server.'
 				});
 			}

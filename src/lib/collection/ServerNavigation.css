@@ -1,0 +1,170 @@
+.sidebar-header {
+	min-height: 56px;
+	padding: 0 18px;
+	font-size: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-shrink: 0;
+	border-bottom: 1px solid var(--stroke);
+	font-weight: 600;
+}
+.server-rail {
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 4px 0 16px;
+	background: var(--sidebar);
+	scrollbar-width: none;
+	padding-bottom: 82px;
+}
+.server-rail button {
+	flex-shrink: 0;
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 16px;
+}
+.rail-home img {
+	width: 48px;
+	height: 48px;
+	border-radius: inherit;
+}
+.rail-divider {
+	width: 32px;
+	height: 2px;
+	min-height: 2px;
+	background: var(--stroke);
+}
+.rail-server .guild-mark {
+	width: 48px;
+	height: 48px;
+	border-radius: 16px;
+	font-size: 17px;
+	background: var(--surface-active);
+	color: var(--ink);
+}
+.rail-server .guild-mark img {
+	width: 48px;
+	height: 48px;
+}
+.server-rail button::before {
+	content: '';
+	position: absolute;
+	width: 4px;
+	height: 0;
+	background: var(--ink);
+	border-radius: 0 4px 4px 0;
+	left: calc((48px - var(--rail-width)) / 2);
+}
+.server-rail button:hover::before {
+	height: 20px;
+}
+.server-rail button.active::before {
+	height: 40px;
+}
+.rail-server.active .guild-mark,
+.rail-server:hover .guild-mark {
+	background: var(--accent);
+	color: white;
+}
+.rail-error {
+	position: absolute;
+	right: -3px;
+	bottom: -2px;
+	display: grid;
+	place-items: center;
+	min-width: 18px;
+	height: 18px;
+	border-radius: 10px;
+	background: #da373c;
+	color: white;
+	font-size: 12px;
+	font-weight: 700;
+}
+.channel-sidebar {
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	padding-bottom: 78px;
+	background: var(--sidebar);
+	border: 1px solid var(--stroke);
+	border-bottom: none;
+	border-radius: 12px 0 0 0;
+}
+.sidebar-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.channel-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 8px;
+	scrollbar-width: thin;
+	scrollbar-color: var(--stroke) transparent;
+}
+.channel-category {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 20px 2px 6px;
+	color: var(--faint);
+	font-size: 12px;
+	font-weight: 600;
+}
+.channel-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 36px;
+	padding: 5px 8px;
+	margin-bottom: 2px;
+	border-radius: 5px;
+	text-align: left;
+	color: var(--muted);
+	font-size: 16px;
+}
+.channel-row:hover {
+	color: var(--ink);
+	background: var(--surface-hover);
+}
+.channel-row.active {
+	color: var(--ink);
+	background: var(--surface-active);
+}
+.channel-row > svg {
+	color: var(--faint);
+	flex-shrink: 0;
+}
+.channel-count {
+	margin-left: auto;
+	padding-left: 4px;
+	color: var(--faint);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+@media (min-width: 1600px) {
+	.channel-row {
+		font-size: 18px;
+	}
+	.sidebar-header {
+		font-size: 18px;
+	}
+}
+@media (max-width: 800px) {
+	.server-rail,
+	.channel-sidebar {
+		display: none;
+	}
+}

@@ -1,26 +1,29 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
 	import {
-		copyValue,
 		entryKey,
 		filterEntries,
-		loadGuilds,
 		readFavourites,
 		type AssetKind,
 		type CatalogEntry,
 		type CatalogGuild,
-		type CopyMode,
-		type GuildState
-	} from '$lib/catalog';
-	import { exportEmojis } from '$lib/offline-export';
-	import LibraryIcon from '$lib/icons/LibraryIcon.svelte';
+		type CopyMode
+	} from './catalog';
+	import { createServerCollection } from './collection/servers';
+	import { createAssetActions } from './collection/actions';
+	import ServerNavigation from './collection/ServerNavigation.svelte';
+	import CollectionHeader from './collection/CollectionHeader.svelte';
+	import CollectionStatus from './collection/CollectionStatus.svelte';
+	import CollectionDetails from './collection/CollectionDetails.svelte';
 	import AssetCard from '../routes/AssetCard.svelte';
-	import AssetDetails from '$lib/AssetDetails.svelte';
-	import GuildMark from '$lib/GuildMark.svelte';
+	import LibraryIcon from './icons/LibraryIcon.svelte';
+	import './collection/Collection.css';
 
 	export let guilds: CatalogGuild[];
 	export let userId: string;
-
+	const servers = createServerCollection(guilds);
+	const cooldown = servers.cooldown;
+	const actions = createAssetActions();
 	let query = '';
 	let kind: AssetKind = 'emoji';
 	let guildId = '';
@@ -28,38 +31,24 @@
 	let favouritesOnly = false;
 	let favourites = new Set<string>();
 	let mode: CopyMode = 'code';
-	let states: Record<string, GuildState> = {};
-	let loading = true;
-	let visibleCount = 120;
-	let copiedKey = '';
-	let status = '';
-	let statusIsError = false;
-	let manualCopy = '';
-	let searchInput: HTMLInputElement;
-	let detailDialog: HTMLDialogElement;
-	let selectedKey = '';
-	let filtersOpen = false;
 	let selecting = false;
 	let selectedEmojis = new Set<string>();
-	let copyTimer: ReturnType<typeof setTimeout>;
-	let copyGeneration = 0;
-	let exporting = false;
-	let exportKind: 'html' | 'png' = 'html';
-	let exportProgress = 0;
-	let exportTotal = 0;
-	let exportController: AbortController | undefined;
-	const collectionController = new AbortController();
+	let selectedKey = '';
+	let detailsVisible = true;
+	let visibleCount = 120;
+	let searchInput: HTMLInputElement;
+	let detailDialog: HTMLDialogElement;
 	$: storageKey = `yuubari:favourites:${userId}`;
-	$: availableGuilds = guilds.filter((guild) => guild.features.includes('DISCOVERABLE'));
-	$: loaded = Object.values(states).filter((state) => state.status === 'loaded');
-	$: failed = Object.values(states).filter((state) => state.status === 'error');
-	$: completed = loaded.length + failed.length;
-	$: entries = loaded
-		.flatMap((state) => state.entries)
-		.sort((a, b) => a.name.localeCompare(b.name));
+	$: availableGuilds = $servers.guilds;
+	$: entries = $servers.entries;
+	$: loading = $servers.loading;
+	$: reloadingId = $servers.reloadingId;
+	$: retrySeconds = $cooldown;
+	$: ({ copiedKey, status, statusIsError, manualCopy, exporting } = $actions);
 	$: emojiCount = entries.filter((entry) => entry.kind === 'emoji').length;
 	$: stickerCount = entries.length - emojiCount;
 	$: favouriteCount = entries.filter((entry) => favourites.has(entryKey(entry))).length;
+	$: counts = { emojis: emojiCount, stickers: stickerCount, favourites: favouriteCount };
 	$: matches = filterEntries(entries, {
 		query,
 		kind,
@@ -77,61 +66,33 @@
 	$: selectedInView = matches.filter((entry) => selectedEmojis.has(entryKey(entry))).length;
 	$: hiddenSelectedCount = selectedForExport.length - selectedInView;
 	$: pngMode = selecting && kind === 'emoji';
+	$: selection = {
+		active: selecting,
+		png: pngMode,
+		count: selectedForExport.length,
+		hidden: hiddenSelectedCount
+	};
 	$: inspected = matches.find((entry) => entryKey(entry) === selectedKey);
-	$: guildCounts = Object.fromEntries(
-		loaded.map((state) => [
-			state.guildId,
-			state.entries.filter((entry) => entry.kind === kind).length
-		])
-	);
 
 	onMount(() => {
 		try {
 			favourites = readFavourites(localStorage, storageKey);
 			mode = localStorage.getItem('yuubari:copy-mode') === 'link' ? 'link' : 'code';
 		} catch {
-			// Browsing and copying remain available when storage is blocked.
+			/* Browsing remains available when storage is blocked. */
 		}
-		void load(availableGuilds);
+		void servers.start();
 	});
-
 	onDestroy(() => {
-		collectionController.abort();
-		exportController?.abort();
-		clearTimeout(copyTimer);
+		servers.destroy();
+		actions.destroy();
 	});
-
-	async function load(targets: CatalogGuild[]) {
-		loading = true;
-		try {
-			await loadGuilds(
-				targets,
-				(state) => {
-					states = { ...states, [state.guildId]: state };
-				},
-				{ signal: collectionController.signal }
-			);
-		} finally {
-			if (!collectionController.signal.aborted) loading = false;
-		}
-	}
-
-	function retryFailed() {
-		const ids = new Set(failed.map((state) => state.guildId));
-		void load(availableGuilds.filter((guild) => ids.has(guild.id)));
-	}
-
-	function chooseFavourites() {
-		favouritesOnly = !favouritesOnly;
-	}
 
 	function toggleSelectionMode() {
-		copiedKey = '';
-		clearTimeout(copyTimer);
+		actions.clearCopy();
 		selecting = !selecting;
 		if (!selecting) selectedEmojis = new Set();
 	}
-
 	function toggleSelection(entry: CatalogEntry) {
 		if (entry.kind !== 'emoji' || exporting) return;
 		const key = entryKey(entry);
@@ -139,60 +100,18 @@
 			? new Set([...selectedEmojis].filter((value) => value !== key))
 			: new Set([...selectedEmojis, key]);
 	}
-
 	function selectResults() {
 		selectedEmojis = new Set([
 			...selectedEmojis,
 			...matches.filter((entry) => entry.kind === 'emoji').map(entryKey)
 		]);
 	}
-
-	function saveFile(blob: Blob, name: string) {
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = name;
-		document.body.appendChild(link);
-		link.click();
-		link.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 10000);
-	}
-
-	async function downloadPngs() {
-		if (exporting || !selectedForExport.length) return;
-		const snapshot = [...selectedForExport];
-		exportKind = 'png';
-		exporting = true;
-		exportProgress = 0;
-		exportTotal = snapshot.length;
-		exportController = new AbortController();
-		try {
-			const { exportPngs } = await import('$lib/png-export');
-			const zip = await exportPngs(snapshot, {
-				signal: exportController.signal,
-				onProgress: (done, total) => {
-					exportProgress = done;
-					exportTotal = total;
-				}
-			});
-			saveFile(zip, `yuubari-selected-emojis-${new Date().toISOString().slice(0, 10)}.zip`);
-			manualCopy = '';
-			statusIsError = false;
-			status = `Saved ${snapshot.length.toLocaleString()} PNGs and emoji-names.txt in a ZIP.`;
-		} catch (error) {
-			statusIsError = !(error instanceof DOMException && error.name === 'AbortError');
-			status = error instanceof Error ? error.message : 'PNG export failed. Please retry.';
-		} finally {
-			exporting = false;
-		}
-	}
-
 	async function inspect(entry: CatalogEntry) {
 		selectedKey = entryKey(entry);
 		await tick();
-		detailDialog.showModal();
+		detailsVisible = true;
+		if (!window.matchMedia('(min-width: 1200px)').matches) detailDialog.showModal();
 	}
-
 	function toggleFavourite(entry: CatalogEntry) {
 		const key = entryKey(entry);
 		favourites = favourites.has(key)
@@ -201,77 +120,31 @@
 		try {
 			localStorage.setItem(storageKey, JSON.stringify([...favourites]));
 		} catch {
-			status = 'This browser could not save favourites. They are available for this visit.';
-			statusIsError = true;
+			actions.error('This browser could not save favourites. They are available for this visit.');
 		}
 	}
-
 	function chooseMode(value: CopyMode) {
 		mode = value;
-		copiedKey = '';
-		clearTimeout(copyTimer);
+		actions.clearCopy();
 		try {
 			localStorage.setItem('yuubari:copy-mode', value);
 		} catch {
-			// A copy preference is optional; the selected mode still works for this visit.
+			/* Preference is optional. */
 		}
 	}
-
-	async function copy(entry: CatalogEntry) {
+	function copy(entry: CatalogEntry) {
 		selectedKey = entryKey(entry);
-		const copiedMode = mode;
-		const value = copyValue(entry, copiedMode);
-		const generation = ++copyGeneration;
-		clearTimeout(copyTimer);
-		copiedKey = '';
-		try {
-			if (!navigator.clipboard) throw new Error('Clipboard unavailable');
-			await navigator.clipboard.writeText(value);
-			if (generation !== copyGeneration) return;
-			copiedKey = entryKey(entry);
-			manualCopy = '';
-			statusIsError = false;
-			status = `${entry.name}: ${entry.kind === 'sticker' ? 'asset link' : copiedMode === 'code' ? 'Discord code' : 'image link'} copied.`;
-			copyTimer = setTimeout(() => (copiedKey = ''), 1800);
-		} catch {
-			if (generation !== copyGeneration) return;
-			manualCopy = value;
-			statusIsError = true;
-			status = 'Clipboard access is unavailable. Select the value below and copy it manually.';
-		}
+		void actions.copy(entry, mode);
 	}
-
-	async function download() {
-		if (exporting || loading || kind !== 'emoji' || !matches.length) return;
-		exportKind = 'html';
-		exporting = true;
-		exportProgress = 0;
-		exportTotal = matches.length;
-		const snapshot = [...matches];
-		exportController = new AbortController();
-		try {
-			const html = await exportEmojis(snapshot, {
-				signal: exportController.signal,
-				onProgress: (done, total) => {
-					exportProgress = done;
-					exportTotal = total;
-				}
-			});
-			saveFile(
-				new Blob([html], { type: 'text/html;charset=utf-8' }),
-				`yuubari-emojis-${new Date().toISOString().slice(0, 10)}.html`
-			);
-			statusIsError = false;
-			status = `Saved ${snapshot.length.toLocaleString()} emojis with their images, names, and Discord codes.`;
-			manualCopy = '';
-		} catch (error) {
-			statusIsError = !(error instanceof DOMException && error.name === 'AbortError');
-			status = error instanceof Error ? error.message : 'Export failed. Please retry.';
-		} finally {
-			exporting = false;
-		}
+	function download() {
+		if (!loading && kind === 'emoji') void actions.exportHtml(matches);
 	}
-
+	function downloadPngs() {
+		void actions.exportPngs(selectedForExport);
+	}
+	function reloadServer() {
+		if (selectedGuild && !exporting) void servers.reload(selectedGuild);
+	}
 	function handleShortcut(event: KeyboardEvent) {
 		if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
 			event.preventDefault();
@@ -283,212 +156,68 @@
 
 <svelte:window onkeydown={handleShortcut} />
 <a class="skip-link" href="#collection">Skip to collection</a>
-<div class="library-shell">
-	<aside class="server-sidebar" aria-label="Server navigation">
-		<header class="sidebar-header">
-			<span>Servers</span><span>{availableGuilds.length}</span>
-		</header>
-		<nav class="server-list" aria-label="Filter collection by server">
-			<button
-				class="server-row all-servers"
-				class:active={!guildId}
-				aria-pressed={!guildId}
-				onclick={() => (guildId = '')}
-				><LibraryIcon name="grid" size={20} /><span>All servers</span></button
-			>
-			<div class="sidebar-divider"></div>
-			{#each availableGuilds as guild (guild.id)}
-				<button
-					class="server-row"
-					class:active={guildId === guild.id}
-					aria-label={guild.name}
-					aria-pressed={guildId === guild.id}
-					title={guild.name}
-					onclick={() => (guildId = guild.id)}
-				>
-					<GuildMark {guild} /><span class="server-name">{guild.name}</span>
-					{#if states[guild.id]?.status === 'error'}<span
-							class="server-error"
-							title="Could not load">!</span
-						>{:else}<span class="server-count" aria-hidden="true"
-							>{guildCounts[guild.id]?.toLocaleString() ?? '–'}</span
-						>{/if}
-				</button>
-			{/each}
-		</nav>
-		<p class="sidebar-footer">Discoverable servers only</p>
-	</aside>
+<div class="library-shell" class:details-hidden={!detailsVisible}>
+	<ServerNavigation
+		servers={$servers}
+		bind:guildId
+		bind:kind
+		bind:favouritesOnly
+		{counts}
+		{selectedGuild}
+	/>
 	<main id="collection" class="library-main" tabindex="-1">
-		<header class="collection-header">
-			<h1 class="sr-only">{kind === 'emoji' ? 'Emoji library' : 'Sticker library'}</h1>
-			<div class="collection-tabs" role="group" aria-label="Collection views">
-				<button
-					class:active={kind === 'emoji'}
-					aria-pressed={kind === 'emoji'}
-					onclick={() => (kind = 'emoji')}
-					><span class="tab-label">Emojis</span><span class="tab-count"
-						>{emojiCount.toLocaleString()}</span
-					></button
-				>
-				<button
-					class:active={kind === 'sticker'}
-					aria-pressed={kind === 'sticker'}
-					onclick={() => (kind = 'sticker')}
-					><span class="tab-label">Stickers</span><span class="tab-count"
-						>{stickerCount.toLocaleString()}</span
-					></button
-				>
-				<span class="tab-divider"></span>
-				<button
-					class="favourites-filter"
-					class:active={favouritesOnly}
-					aria-pressed={favouritesOnly}
-					onclick={chooseFavourites}
-					><LibraryIcon name="star" size={16} filled={favouritesOnly} /><span class="tab-label"
-						>Favourites</span
-					><span class="tab-count">{favouriteCount}</span></button
-				>
-			</div>
-			<div class="collection-header-actions">
-				<span class="collection-scope" title={selectedGuild?.name || 'All servers'}
-					>{selectedGuild?.name || 'All servers'}</span
-				>
-				{#if kind === 'emoji'}<button
-						class="selection-toggle"
-						class:active={selecting}
-						aria-label={selecting ? 'Exit selection' : 'Select emojis'}
-						aria-pressed={selecting}
-						onclick={toggleSelectionMode}
-						disabled={exporting}
-						title={selecting
-							? 'Exit selection and clear selected emojis'
-							: 'Select multiple emojis for PNG export'}
-						><LibraryIcon name="select" size={16} /><span>{selecting ? 'Done' : 'Select'}</span
-						></button
+		<CollectionHeader
+			{availableGuilds}
+			{selectedGuild}
+			bind:kind
+			bind:guildId
+			bind:animation
+			bind:mode
+			bind:favouritesOnly
+			bind:detailsVisible
+			{counts}
+			{selection}
+			matchCount={matches.length}
+			{loading}
+			transfers={$actions}
+			{chooseMode}
+			{toggleSelectionMode}
+			{selectResults}
+			clearSelection={() => (selectedEmojis = new Set())}
+			{downloadPngs}
+			{download}
+		/>
+		<CollectionStatus
+			servers={$servers}
+			actions={$actions}
+			{guildId}
+			{retrySeconds}
+			retryFailed={servers.retryFailed}
+			cancelExport={actions.cancelExport}
+		/>
+		<div class="gallery-heading">
+			<div class="results-summary">
+				<p class="results-count">
+					{matches.length.toLocaleString()}
+					{favouritesOnly ? 'favourites' : 'results'}{selectedGuild
+						? ` · ${selectedGuild.name}`
+						: ''}{loading ? ' · loading more' : ''}
+				</p>
+				{#if selectedGuild}<button
+						class="server-reload"
+						class:is-reloading={reloadingId === selectedGuild.id}
+						onclick={reloadServer}
+						disabled={loading || exporting || retrySeconds > 0}
+						aria-label={`Reload ${selectedGuild.name}`}
+						title={retrySeconds > 0
+							? `Retry ${selectedGuild.name} in ${retrySeconds}s`
+							: reloadingId === selectedGuild.id
+								? `Reloading ${selectedGuild.name}…`
+								: `Reload ${selectedGuild.name}`}
+						><LibraryIcon name="retry" size={15} />{#if retrySeconds > 0}<span>{retrySeconds}s</span
+							>{/if}</button
 					>{/if}
 			</div>
-		</header>
-		<div class="collection-toolbar">
-			<div class="collection-search">
-				<LibraryIcon name="search" size={18} /><label class="sr-only" for="library-search"
-					>Search emojis, stickers, servers, or IDs</label
-				><input
-					id="library-search"
-					type="search"
-					placeholder="Search emojis, servers, or IDs"
-					bind:value={query}
-					bind:this={searchInput}
-					onkeydown={(event) => {
-						if (event.key === 'Escape') query = '';
-					}}
-				/><kbd>Ctrl K</kbd>
-			</div>
-			<label class="toolbar-select mobile-server-select"
-				><span class="sr-only">Filter by server</span><select
-					aria-label="Filter by server"
-					bind:value={guildId}
-					><option value="">All servers</option>{#each availableGuilds as guild (guild.id)}<option
-							value={guild.id}>{guild.name}</option
-						>{/each}</select
-				><LibraryIcon name="chevron" size={16} /></label
-			>
-			<button
-				class="filter-toggle"
-				class:active={animation !== 'all' || mode !== 'code'}
-				aria-label="Filter options"
-				aria-expanded={filtersOpen}
-				aria-controls="filter-options"
-				onclick={() => (filtersOpen = !filtersOpen)}><LibraryIcon name="filter" size={18} /></button
-			>
-			<div class="filter-options" class:filters-open={filtersOpen} id="filter-options">
-				<label class="toolbar-select"
-					><span class="sr-only">Filter by animation</span><select
-						aria-label="Filter by animation"
-						bind:value={animation}
-						><option value="all">All formats</option><option value="static">Static</option><option
-							value="animated">Animated</option
-						></select
-					><LibraryIcon name="chevron" size={16} /></label
-				>
-				<label class="toolbar-select"
-					><span class="sr-only">Copy format</span><select
-						aria-label="Copy format"
-						bind:value={mode}
-						onchange={() => chooseMode(mode)}
-						><option value="code">Discord code</option><option value="link">Image link</option
-						></select
-					><LibraryIcon name="chevron" size={16} /></label
-				>
-			</div>
-			<button
-				class="export-button"
-				class:png-export={pngMode}
-				aria-label={pngMode
-					? 'Download selected PNGs'
-					: exporting && exportKind === 'html'
-						? `Exporting ${exportProgress}/${exportTotal}`
-						: 'Export emojis'}
-				onclick={() => (pngMode ? downloadPngs() : download())}
-				disabled={exporting ||
-					kind !== 'emoji' ||
-					(pngMode ? !selectedForExport.length : loading || !matches.length)}
-				title={pngMode
-					? 'ZIP of selected PNGs and :emoji: names. Animated emojis become still images.'
-					: 'Export matching emojis, images, and codes as an offline HTML file'}
-				><LibraryIcon name="download" size={16} /><span
-					>{exporting ? 'Saving' : pngMode ? 'PNG ZIP' : 'Export'}</span
-				></button
-			>
-		</div>
-		{#if selecting && kind === 'emoji'}
-			<div class="selection-bar" aria-label="Emoji selection">
-				<span class="selection-count" role="status" aria-live="polite"
-					>{selectedForExport.length.toLocaleString()} selected{hiddenSelectedCount
-						? ` · ${hiddenSelectedCount.toLocaleString()} hidden`
-						: ''}</span
-				>
-				<div class="selection-actions">
-					<button
-						onclick={selectResults}
-						disabled={loading || exporting || !matches.length}
-						title="Select every matching emoji, including results beyond Show more"
-						>Select results</button
-					>
-					<button
-						onclick={() => (selectedEmojis = new Set())}
-						disabled={exporting || !selectedForExport.length}>Clear</button
-					>
-				</div>
-			</div>
-		{/if}
-		{#if loading}<div class="loading-notice" role="status">
-				<span class="loading-dot"></span>Loading servers · {completed}/{availableGuilds.length}
-			</div>{/if}
-		{#if failed.length}<div class="error-notice" role="alert">
-				<div>
-					<strong
-						>{failed.length} server{failed.length === 1 ? '' : 's'} could not be loaded.</strong
-					><span>{failed[0].error}</span>
-				</div>
-				<button onclick={retryFailed} disabled={loading}
-					><LibraryIcon name="retry" size={14} />Retry failed</button
-				>
-			</div>{/if}
-		{#if exporting}<div class="export-notice" role="status">
-				<div>
-					<span
-						>{exportKind === 'png' ? 'Converting PNGs' : 'Embedding images'} · {exportProgress}/{exportTotal}</span
-					><progress value={exportProgress} max={exportTotal}></progress>
-				</div>
-				<button onclick={() => exportController?.abort()}>Cancel export</button>
-			</div>{/if}
-		<div class="gallery-heading">
-			<p class="results-count">
-				{matches.length.toLocaleString()}
-				{favouritesOnly ? 'favourites' : 'results'}{selectedGuild
-					? ` · ${selectedGuild.name}`
-					: ''}{loading ? ' · loading more' : ''}
-			</p>
 			<span
 				>{selecting && kind === 'emoji'
 					? 'Click to select · Selections stay across filters'
@@ -556,32 +285,38 @@
 						: 's are'} unavailable through Discord’s public previews.
 				</p>{/if}
 		</div>
+		<footer class="collection-composer">
+			<div class="collection-search">
+				<LibraryIcon name="search" size={18} /><label class="sr-only" for="library-search"
+					>Search emojis, stickers, servers, or IDs</label
+				><input
+					id="library-search"
+					type="search"
+					placeholder={favouritesOnly
+						? 'Search favourites'
+						: `Search ${kind === 'emoji' ? 'emojis' : 'stickers'}`}
+					bind:value={query}
+					bind:this={searchInput}
+					onkeydown={(event) => {
+						if (event.key === 'Escape') query = '';
+					}}
+				/><kbd>Ctrl K</kbd>
+			</div>
+			<LibraryIcon name="search" size={22} />
+		</footer>
 	</main>
+	<CollectionDetails
+		{inspected}
+		{mode}
+		favourite={Boolean(inspected && favourites.has(entryKey(inspected)))}
+		copied={Boolean(inspected && copiedKey === entryKey(inspected))}
+		{manualCopy}
+		bind:dialog={detailDialog}
+		{copy}
+		{toggleFavourite}
+	/>
 </div>
 
-<dialog class="asset-dialog" bind:this={detailDialog} aria-label="Asset details">
-	<div class="dialog-heading">
-		<span>Asset details</span><button
-			aria-label="Close asset details"
-			onclick={() => detailDialog.close()}><LibraryIcon name="close" size={18} /></button
-		>
-	</div>
-	{#if inspected}<AssetDetails
-			entry={inspected}
-			{mode}
-			favourite={favourites.has(entryKey(inspected))}
-			copied={copiedKey === entryKey(inspected)}
-			oncopy={copy}
-			onfavourite={toggleFavourite}
-			idPrefix="sheet"
-		/>{/if}
-	{#if manualCopy && inspected && manualCopy === copyValue(inspected, mode)}<p
-			class="detail-copy-feedback"
-			role="alert"
-		>
-			Clipboard access is unavailable. Select the value above and copy it manually.
-		</p>{/if}
-</dialog>
 {#if status}
 	{#if statusIsError || manualCopy}
 		<div class="collection-feedback" role="alert">
@@ -595,12 +330,8 @@
 						onfocus={(event) => event.currentTarget.select()}
 					></textarea>{/if}
 			</div>
-			<button
-				aria-label="Dismiss notification"
-				onclick={() => {
-					status = '';
-					manualCopy = '';
-				}}><LibraryIcon name="close" size={16} /></button
+			<button aria-label="Dismiss notification" onclick={actions.dismiss}
+				><LibraryIcon name="close" size={16} /></button
 			>
 		</div>
 	{:else}<p class="sr-only" role="status" aria-live="polite">{status}</p>{/if}

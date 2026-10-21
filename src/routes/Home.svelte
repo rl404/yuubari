@@ -1,4 +1,5 @@
 <script>
+	import './Home.css';
 	import { resolve } from '$app/paths';
 </script>
 

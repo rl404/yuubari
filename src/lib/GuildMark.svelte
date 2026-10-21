@@ -1,4 +1,5 @@
 <script lang="ts">
+	import './GuildMark.css';
 	import type { CatalogGuild } from '$lib/catalog';
 	import { DISCORD_CDN_HOST } from '$lib/const';
 	import { getDiscordImage } from '$lib/utils';

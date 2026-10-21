@@ -13,6 +13,8 @@
 		| 'chevron'
 		| 'settings'
 		| 'filter'
+		| 'info'
+		| 'panel'
 		| 'select';
 	export let filled = false;
 	export let size = 20;
@@ -31,6 +33,8 @@
 		settings:
 			'M10 3h4l.5 2.5 2 .9 2.3-.8 2 3.4-1.8 1.7v2.6l1.8 1.7-2 3.4-2.3-.8-2 .9L14 21h-4l-.5-2.5-2-.9-2.3.8-2-3.4L5 13.3v-2.6L3.2 9l2-3.4 2.3.8 2-.9L10 3Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
 		filter: 'M4 7h16M4 17h16M8 4v6M16 14v6',
+		info: 'M12 11v6M12 7v.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+		panel: 'M3 4h18v16H3zM15 4v16',
 		select: 'M4 4h16v16H4zM7 12l3 3 7-7'
 	};
 </script>

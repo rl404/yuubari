@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '$lib/collection/AssetCard.css';
 	import { copyValue, type CatalogEntry, type CopyMode } from '$lib/catalog';
 	import LibraryIcon from '$lib/icons/LibraryIcon.svelte';
 	export let entry: CatalogEntry;

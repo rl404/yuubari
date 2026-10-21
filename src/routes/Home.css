@@ -1,0 +1,44 @@
+.home-main {
+	height: calc(100dvh - var(--nav-height));
+	display: grid;
+	place-items: center;
+	padding: 24px;
+	overflow-y: auto;
+}
+.home-login {
+	width: 100%;
+	max-width: 400px;
+	padding: 28px;
+	background: var(--surface);
+	border: 1px solid var(--stroke);
+	border-radius: 8px;
+}
+.home-login > img {
+	width: 48px;
+	height: 48px;
+	border-radius: 14px;
+	margin-bottom: 14px;
+}
+.home-login h1 {
+	font-size: 24px;
+	font-weight: 600;
+}
+.home-login p {
+	color: var(--muted);
+	font-size: 14px;
+	line-height: 1.6;
+	margin: 10px 0 18px;
+}
+.home-login .primary-action {
+	width: 100%;
+}
+.home-login .home-note {
+	color: var(--faint);
+	font-size: 11px;
+	margin: 14px 0 0;
+}
+@media (max-width: 359px) {
+	.home-login {
+		padding: 20px;
+	}
+}

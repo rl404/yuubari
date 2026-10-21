@@ -1,4 +1,5 @@
 <script lang="ts">
+	import './Nav.css';
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { DISCORD_CDN_HOST } from '$lib/const';
@@ -52,11 +53,14 @@
 		if (event.key === 'Escape' && showMenu) closeMenu(true);
 	}}
 />
-<nav class="app-nav" aria-label="Main navigation">
+<nav class="app-nav" class:logged-in={isLoggedIn} aria-label="Main navigation">
 	<a class="nav-brand" href={resolve('/')} aria-label="Yuubari home"
 		><img src="/logo.png" alt="" width="24" height="24" /><span>Yuubari</span></a
 	>
 	<div class="nav-account" use:clickOutside={() => closeMenu()}>
+		{#if isLoggedIn}<div class="account-identity">
+				<strong>{user.username}</strong><span>Emoji library</span>
+			</div>{/if}
 		<button
 			class="settings-button"
 			aria-label="Settings"
@@ -90,7 +94,7 @@
 						></select
 					></label
 				>
-				<a href="https://github.com/rl404/yuubari" target="_blank" rel="noopener noreferrer"
+				<a href="https://github.com/cmdr-chara/yuubari" target="_blank" rel="noopener noreferrer"
 					><GithubIcon class="size-4" />Source code</a
 				>
 				{#if isLoggedIn}<a href={resolve('/auth/logout')}><LogoutIcon class="size-4" />Log out</a

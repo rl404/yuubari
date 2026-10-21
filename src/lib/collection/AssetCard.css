@@ -1,0 +1,144 @@
+.asset-card {
+	min-width: 0;
+	border-radius: 5px;
+}
+.asset-card:hover,
+.asset-card:focus-within {
+	background: var(--surface-active);
+}
+.asset-card.is-copied {
+	background: var(--surface-active);
+}
+.asset-surface {
+	position: relative;
+}
+.asset-copy {
+	display: grid;
+	place-items: center;
+	position: relative;
+	width: 100%;
+	height: 68px;
+	border-radius: 5px;
+}
+.asset-copy img {
+	width: 48px;
+	height: 48px;
+	object-fit: contain;
+}
+.asset-copy:focus-visible {
+	outline-offset: -2px;
+}
+.favourite-button {
+	display: grid;
+	place-items: center;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 28px;
+	height: 28px;
+	border-radius: 4px;
+	color: var(--muted);
+	opacity: 0;
+	pointer-events: none;
+}
+.asset-card:hover .favourite-button,
+.asset-card:focus-within .favourite-button,
+.favourite-button.is-active {
+	opacity: 1;
+	pointer-events: auto;
+}
+.favourite-button:hover {
+	background: var(--sidebar);
+	color: var(--ink);
+}
+.favourite-button.is-active {
+	color: var(--accent-text);
+}
+.asset-name {
+	display: block;
+	width: 100%;
+	min-height: 26px;
+	padding: 3px 6px 6px;
+	text-align: center;
+	color: var(--muted);
+	font-size: 12px;
+	line-height: 17px;
+	border-radius: 0 0 5px 5px;
+}
+.asset-name > span {
+	display: block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.asset-name:hover {
+	color: var(--ink);
+}
+.asset-name:focus-visible {
+	outline-offset: -2px;
+}
+.asset-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	position: absolute;
+	bottom: 1px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 1px 4px;
+	border-radius: 3px;
+	color: var(--success);
+	background: var(--sidebar);
+	font-size: 10px;
+	line-height: 16px;
+}
+.asset-card.is-selected {
+	background: var(--surface-active);
+	outline: 1px solid var(--accent-text);
+	outline-offset: -1px;
+}
+.asset-select-control {
+	display: grid;
+	place-items: center;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 28px;
+	height: 28px;
+	cursor: pointer;
+}
+.asset-select-control input {
+	width: 15px;
+	height: 15px;
+	accent-color: var(--accent);
+	cursor: pointer;
+}
+@media (max-width: 519px) {
+	.asset-name {
+		min-height: 32px;
+	}
+	.favourite-button {
+		width: 32px;
+		height: 32px;
+	}
+}
+@media (pointer: coarse) {
+	.asset-select-control {
+		min-height: 44px;
+	}
+	.asset-select-control {
+		min-width: 44px;
+	}
+	.favourite-button {
+		opacity: 1;
+		pointer-events: auto;
+		width: 44px;
+		height: 44px;
+	}
+	.asset-copy {
+		height: 84px;
+	}
+	.asset-name {
+		min-height: 44px;
+	}
+}

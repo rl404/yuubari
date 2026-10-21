@@ -1,0 +1,213 @@
+.app-nav {
+	height: var(--nav-height);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 12px;
+	background: var(--sidebar);
+	border-bottom: 1px solid var(--stroke);
+}
+.nav-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 15px;
+	font-weight: 600;
+}
+.nav-brand img {
+	width: 24px;
+	height: 24px;
+	border-radius: 8px;
+}
+.nav-account {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	position: relative;
+}
+.settings-button {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	color: var(--muted);
+	border-radius: 4px;
+}
+.settings-button:hover {
+	color: var(--ink);
+	background: var(--surface-active);
+}
+.account-button {
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	overflow: hidden;
+	background: var(--surface-active);
+	border-radius: 50%;
+	font-size: 11px;
+}
+.account-button img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.account-button:hover {
+	opacity: 0.85;
+}
+.account-popup {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 20;
+	min-width: 220px;
+	padding: 8px;
+	border: 1px solid var(--stroke);
+	border-radius: 6px;
+	background: var(--sidebar);
+	box-shadow: 0 8px 24px var(--shadow);
+}
+.account-name {
+	padding: 6px 8px 10px;
+	font-size: 13px;
+	font-weight: 600;
+	overflow-wrap: anywhere;
+	border-bottom: 1px solid var(--stroke);
+}
+.appearance-control {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 8px;
+	font-size: 13px;
+}
+.appearance-control select {
+	padding: 4px 6px;
+	max-width: 110px;
+	background: var(--input);
+	border: 1px solid var(--stroke);
+	border-radius: 4px;
+}
+.account-popup a {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	border-radius: 3px;
+	color: var(--muted);
+	font-size: 13px;
+}
+.account-popup a:hover {
+	background: var(--surface-active);
+	color: var(--ink);
+}
+.app-nav.logged-in {
+	justify-content: center;
+	position: relative;
+}
+.logged-in .nav-brand {
+	font-size: 14px;
+	font-weight: 500;
+}
+.logged-in .nav-brand img {
+	width: 20px;
+	height: 20px;
+	border-radius: 6px;
+}
+.logged-in .nav-account {
+	position: fixed;
+	bottom: 8px;
+	z-index: 15;
+	padding: 8px;
+	border-radius: 8px;
+	background: var(--surface);
+	left: 8px;
+	width: calc(var(--rail-width) + var(--channel-width) - 16px);
+	height: 66px;
+}
+.logged-in .account-button {
+	order: -1;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	position: relative;
+	overflow: visible;
+}
+.logged-in .account-button img {
+	border-radius: 50%;
+}
+.logged-in .account-button::after {
+	content: '';
+	position: absolute;
+	right: -1px;
+	bottom: -1px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #43a25a;
+	border: 3px solid var(--surface);
+}
+.account-identity {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	line-height: 19px;
+}
+.account-identity strong {
+	font-size: 14px;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.account-identity > span {
+	color: var(--muted);
+	font-size: 12px;
+}
+.logged-in .account-popup {
+	top: auto;
+	bottom: calc(100% + 8px);
+	left: 0;
+	right: 0;
+}
+@media (max-width: 800px) {
+	.settings-button {
+		width: 36px;
+		height: 36px;
+	}
+	.account-popup a,
+	.appearance-control select {
+		min-height: 36px;
+	}
+	.app-nav.logged-in {
+		justify-content: space-between;
+	}
+	.logged-in .nav-account {
+		position: relative;
+		left: auto;
+		bottom: auto;
+		width: auto;
+		height: auto;
+		padding: 0;
+		background: transparent;
+	}
+	.logged-in .account-popup {
+		top: calc(100% + 8px);
+		bottom: auto;
+		left: auto;
+		right: 0;
+	}
+	.logged-in .account-button {
+		width: 28px;
+		height: 28px;
+		order: 0;
+	}
+	.account-identity {
+		display: none;
+	}
+	.logged-in .account-button::after {
+		display: none;
+	}
+}

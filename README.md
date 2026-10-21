@@ -44,10 +44,11 @@ Register `http://localhost:5173/auth/callback` as an OAuth2 redirect in your Dis
 
 ## Using the collection
 
-- Search by emoji or sticker name, server name, or ID. Words can be combined, such as `brawl clock`. Press **Ctrl+K** or **Cmd+K** to focus search and **Escape** in the search field to clear it.
-- Select a server from the sidebar (or the server dropdown on mobile), static/animated format, or the Favourites filter. Mobile format and copy controls are behind **Filter options**. Servers load with bounded concurrency; results appear as they arrive. Failed servers have a retry action.
+- Search by emoji or sticker name, server name, or ID. Words can be combined, such as `brawl clock`. The search field is at the bottom of the collection. Press **Ctrl+K** or **Cmd+K** to focus search and **Escape** in the search field to clear it.
+- Select a server from the left icon rail (or the server dropdown on mobile), static/animated format, or the Favourites filter. Mobile format and copy controls are behind **Filter options**. Servers load with bounded concurrency; results appear as they arrive. Unavailable servers appear in a compact notice with expandable per-server details. When Discord supplies a rate-limit delay, the request queue pauses. Short delays (up to 10 seconds) are retried automatically, with at most two retries per server. Longer delays and exhausted retries show a countdown before manual retry, which reloads only failed servers.
+- To reload one server, select it and use the reload arrow beside its result count. Refresh bypasses the browser cache, leaves other servers alone, and keeps the previous collection visible if refreshing fails. Discord’s reported cooldown disables the reload action until it expires.
 - Click an emoji to copy its Discord code. Static emojis use `<:name:id>` and animated emojis use `<a:name:id>`. Switch to **Image link** to copy a CDN URL instead. Discord's own Nitro, server-access, and external-emoji permission rules still apply; copying valid syntax does not grant access.
-- Click an asset’s name for an enlarged preview, its server and ID, a selectable code, and the original asset link. Details open in a keyboard-accessible dialog when requested, so the gallery keeps its full width.
+- Click an asset’s name for an enlarged preview, its server and ID, a selectable code, and the original asset link. On desktop screens at least 1200px wide, details open in the right pane; the header toggle hides or shows this pane. On smaller screens, details open in a keyboard-accessible dialog.
 - Use the star to save an emoji or sticker. Favourites are stored in this browser, separately for each signed-in Discord user. They are not synced between browsers. The selected copy format is also remembered locally.
 - Open **Settings** to choose **Light**, **Dark**, or **System** from Appearance. Dark is the default. The preference is saved in this browser; System follows changes to the operating system’s appearance.
 - Stickers copy as asset links; Lottie stickers provide a JSON asset link instead of a raster preview.
@@ -74,6 +75,10 @@ The existing Export button changes to **PNG ZIP** in selection mode. It saves th
 - `emoji-manifest.json`, mapping each filename to its original name, short name, ID, server, and whether the source was animated.
 
 Animated emojis become a still PNG using their default/first frame. Duplicate names receive an ID suffix so images are not overwritten; filenames are made portable. Images are converted in the browser with bounded concurrency. Failed downloads or conversions prevent a partial ZIP, and cancellation keeps the selection available for retry. PNG/ZIP support loads only when requested.
+
+## Code layout
+
+For a request walkthrough, file map, styling conventions, and the Svelte concepts used here, see [Maintaining Yuubari](docs/MAINTAINING.md). Collection request handling lives in `src/lib/collection/servers.ts`; clipboard and export jobs live in `src/lib/collection/actions.ts`. The UI components and their CSS are grouped in that directory.
 
 ## Development checks
 

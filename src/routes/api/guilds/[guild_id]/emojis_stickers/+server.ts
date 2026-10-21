@@ -1,5 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { DISCORD_API_HOST } from '$lib/const';
+import { retryAfterMs } from '$lib/retry-after';
 import type { RequestHandler } from './$types';
 
 export type EmojiStickerResponse = {
@@ -27,6 +28,32 @@ export const GET = (async ({ params }) => {
 	const resp = await fetch(`${DISCORD_API_HOST}/guilds/${params.guild_id}/preview`, {
 		headers: { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}` }
 	});
+
+	if (resp.status === 429) {
+		let delay = retryAfterMs(resp.headers.get('Retry-After'));
+		if (!delay) {
+			try {
+				const body: unknown = await resp.json();
+				if (
+					body &&
+					typeof body === 'object' &&
+					'retry_after' in body &&
+					typeof body.retry_after === 'number'
+				) {
+					delay = retryAfterMs(String(body.retry_after));
+				}
+			} catch {
+				/* An invalid body must not hide the original rate-limit response. */
+			}
+		}
+		return Response.json(
+			{ status: 429, message: 'rate limited' },
+			{
+				status: 429,
+				headers: delay > 0 ? { 'Retry-After': String(delay / 1000) } : {}
+			}
+		);
+	}
 
 	if (!resp.ok) {
 		if (resp.status === 401) {
