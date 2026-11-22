@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:26.13-alpine3.24 AS base
 
 # Stage 1: Install dependencies
 FROM base AS deps
@@ -11,7 +11,6 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV NODE_ENV=production
 RUN npm run build
 
 # Stage 3: Production server
@@ -19,9 +18,7 @@ FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4173
-ENV HOSTNAME="0.0.0.0"
-RUN mkdir build
-RUN chown node:node build
+ENV HOST=0.0.0.0
 COPY --from=builder --chown=node:node /app/build ./build
 USER node
 EXPOSE 4173
