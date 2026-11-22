@@ -21,22 +21,22 @@ _\*only works for [discoverable](https://support.discord.com/hc/en-us/articles/3
 
 1. Clone the repo
 
-```sh
-git clone https://github.com/rl404/yuubari
-```
+   ```sh
+   git clone https://github.com/rl404/yuubari
+   ```
 
 2. Rename `.env.example` to `.env` and modify the value according to your setup.
 3. Install dependencies.
 
-```sh
-npm ci
-```
+   ```sh
+   npm i
+   ```
 
 4. Start.
 
-```sh
-npm run dev
-```
+   ```sh
+   npm run dev
+   ```
 
 5. [http://localhost:5173](http://localhost:5173) is ready.
 

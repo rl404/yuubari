@@ -7,7 +7,7 @@ export const GET = (() => {
 		status: 302,
 		headers: {
 			Location: `${DISCORD_API_HOST}/oauth2/authorize?client_id=${env.DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-				env.REDIRECT_URI
+				env.REDIRECT_URI || ''
 			)}&response_type=code&scope=identify+guilds`
 		}
 	});
